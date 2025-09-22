@@ -315,7 +315,7 @@ document.getElementById("rsvpForm").addEventListener("submit", async function(e)
     const result = await response.json();
 
     if(result.status === "ok") {
-      showAlert("🎉🎉🎉 Danke für deine Antwort! 🎉🎉🎉 Wir freuen uns schon auf dein Kommen!");
+      showAlert("🎉 Danke für deine Antwort! 🎉 Wir freuen uns schon auf dein Kommen!");
       document.getElementById("rsvpForm").reset();
       document.querySelector("#customAlert button").onclick = () => { window.location.href = "index.html"; };
     } else if(result.status === "exists") {
@@ -361,3 +361,4 @@ setInterval(()=>createEmoji("forty-sign","40"),1000);
 </script>
 </body>
 </html>
+
