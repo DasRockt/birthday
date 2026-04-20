@@ -12,23 +12,21 @@ html, body {
   font-family: 'Arial Black', sans-serif;
   background: #000;
   color: #ffcc00;
+
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 body::-webkit-scrollbar { display:none; }
 
-/* Zentrierung stabil */
+/* stabile Zentrierung */
 .wrapper {
   min-height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
-  transition: transform 0.25s ease;
-}
-.wrapper.typing {
-  transform: translateY(-10%);
+  box-sizing: border-box;
 }
 
 .content {
@@ -66,7 +64,11 @@ input[type="text"] {
   color:#ffcc00;
 }
 
-.checkbox-group { display:flex; flex-direction:column; gap:15px; }
+.checkbox-group {
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
 
 .checkbox-group label {
   font-size:18px;
@@ -135,7 +137,7 @@ button {
   100% { transform:translateY(120vh) rotate(360deg); opacity:0; }
 }
 
-/* Party Lichter */
+/* Party Licht */
 .party-light {
   position:absolute;
   border-radius:50%;
@@ -147,7 +149,7 @@ button {
   50% { transform:translate(-15vw,15vh) scale(0.8); }
 }
 
-/* Alert */
+/* Popup */
 #customAlert {
   display:none;
   position:fixed;
@@ -164,13 +166,23 @@ button {
   border-radius:10px;
   width:300px;
   text-align:center;
+  box-shadow:0 0 15px #ffcc00;
+}
+#customAlert button {
+  margin-top:15px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:#ffcc00;
+  cursor:pointer;
+  font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<div class="wrapper" id="wrapper">
+<div class="wrapper">
 <div class="content">
 
 <h1>🎉 Mario´s 40iger Feier 🎉</h1>
@@ -185,7 +197,10 @@ button {
     <label><input type="checkbox" id="neinCheckbox"> Ich kann leider nicht kommen</label>
   </div>
 
-  <button type="submit"><span class="spinner"></span>Absenden</button>
+  <button type="submit" id="submitBtn">
+    <span class="spinner"></span>
+    Absenden
+  </button>
 </form>
 
 <button id="backButton" onclick="window.location.href='index.html'">zurück</button>
@@ -198,7 +213,7 @@ button {
 <div class="party-light" style="width:400px;height:400px;top:50%;left:70%;"></div>
 <div class="party-light" style="width:250px;height:250px;top:70%;left:20%;"></div>
 
-<!-- Alert -->
+<!-- Popup -->
 <div id="customAlert">
   <div>
     <p id="alertText"></p>
@@ -209,8 +224,8 @@ button {
 <script>
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyVMyZi3ApQglIALSslN8odzkgVo40gi2oGlBd7lOPA2m6sEO8qhrFb_N2fiSFcV2gR/exec";
 
-const wrapper = document.getElementById("wrapper");
 const form = document.getElementById("rsvpForm");
+const submitBtn = document.getElementById("submitBtn");
 
 const jaCheckbox = document.getElementById("jaCheckbox");
 const neinCheckbox = document.getElementById("neinCheckbox");
@@ -219,7 +234,7 @@ const neinCheckbox = document.getElementById("neinCheckbox");
 jaCheckbox.addEventListener("change", () => { if(jaCheckbox.checked) neinCheckbox.checked = false; });
 neinCheckbox.addEventListener("change", () => { if(neinCheckbox.checked) jaCheckbox.checked = false; });
 
-/* Alert */
+/* Popup */
 function showAlert(text){
   document.getElementById('alertText').innerText = text;
   document.getElementById('customAlert').style.display = 'flex';
@@ -228,14 +243,14 @@ function closeAlert(){
   document.getElementById('customAlert').style.display = 'none';
 }
 
-/* Formular senden */
-form.addEventListener("submit", async function(e) {
+/* FORMULAR (FIXED + RELIABLE) */
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const vorname = document.getElementById("vorname").value.trim();
   const nachname = document.getElementById("nachname").value.trim();
 
-  if(!vorname || !nachname) {
+  if(!vorname || !nachname){
     showAlert("Bitte Vor- und Nachname ausfüllen!");
     return;
   }
@@ -244,71 +259,63 @@ form.addEventListener("submit", async function(e) {
   if(jaCheckbox.checked) antwort = "ja";
   else if(neinCheckbox.checked) antwort = "nein";
   else {
-    showAlert("Bitte wähle Ja oder Nein!");
+    showAlert("Bitte Ja oder Nein auswählen!");
     return;
   }
 
   const data = { vorname, nachname, antwort };
 
-  const submitButton = form.querySelector("button[type='submit']");
-  const spinner = submitButton.querySelector(".spinner");
-
+  const spinner = submitBtn.querySelector(".spinner");
   spinner.style.display = "inline-block";
-  submitButton.disabled = true;
+  submitBtn.disabled = true;
 
   try {
-    const response = await fetch(WEB_APP_URL, {
+    const res = await fetch(WEB_APP_URL, {
       method: "POST",
       body: JSON.stringify(data)
     });
 
-    const result = await response.json();
+    const result = await res.json();
 
-    if(result.status === "ok") {
-      showAlert("🎉 Danke für deine Antwort! 🎉");
+    if(result.status === "ok"){
+      showAlert("🎉 Danke für deine Antwort! 🎉 Wir freuen uns schon auf dein Kommen!");
+
       form.reset();
-    } else if(result.status === "exists") {
-      showAlert("Du hast schon abgestimmt.");
+
+      document.querySelector("#customAlert button").onclick = () => {
+        window.location.href = "index.html";
+      };
+
+    } else if(result.status === "exists"){
+      showAlert("Du hast schon abgestimmt. Für Änderungen melde dich bitte bei Mario.");
+      document.querySelector("#customAlert button").onclick = closeAlert;
+
     } else {
-      showAlert("Fehler beim Absenden.");
+      showAlert("Fehler beim Absenden, bitte erneut versuchen.");
+      document.querySelector("#customAlert button").onclick = closeAlert;
     }
+
   } catch (err) {
-    showAlert("Netzwerkfehler.");
     console.error(err);
+    showAlert("Netzwerkfehler – bitte Verbindung prüfen.");
+    document.querySelector("#customAlert button").onclick = closeAlert;
   }
 
   spinner.style.display = "none";
-  submitButton.disabled = false;
-});
-
-/* Tippen erkennen */
-let isTyping = false;
-
-document.querySelectorAll("input").forEach(input => {
-  input.addEventListener("focus", () => {
-    isTyping = true;
-    wrapper.classList.add("typing");
-  });
-  input.addEventListener("blur", () => {
-    isTyping = false;
-    wrapper.classList.remove("typing");
-  });
+  submitBtn.disabled = false;
 });
 
 /* Emojis */
 function createEmoji(cls, icon){
-  if(isTyping) return;
-
   const e = document.createElement("div");
   e.classList.add(cls);
   e.innerHTML = icon;
   e.style.left = Math.random()*100 + "vw";
-  e.style.fontSize = (2 + Math.random()*2) + "rem";
 
   const duration = 6 + Math.random()*5;
   e.style.animation =
-    (cls === "beer" || cls === "wine" ? "floatUp" : "floatDown") +
-    ` ${duration}s linear forwards`;
+    (cls === "beer" || cls === "wine" ? "floatUp" : "floatDown")
+    + ` ${duration}s linear forwards`;
 
   document.body.appendChild(e);
   setTimeout(()=> e.remove(), duration*1000);
